@@ -1,0 +1,45 @@
+# Access policy evaluated by `python -m iamtk simulate`.
+#
+# Evaluation order (first match wins):
+#   1. account-state checks (terminated / disabled)
+#   2. explicit deny rules below (attribute-based, evaluated top to bottom)
+#   3. step-up requirements (MFA for sensitive permissions)
+#   4. RBAC grant lookup: direct permission -> role -> group -> group role
+#   5. default deny
+#
+# Permission patterns accept shell-style wildcards, e.g. "finance.*:approve".
+
+default: deny
+
+account_state:
+  deny_terminated: true
+  deny_disabled: true
+
+step_up:
+  # Any permission at these sensitivity levels requires MFA enrolment.
+  require_mfa_for_sensitivity: [high, critical]
+
+deny_rules:
+  - id: DENY-001
+    name: Service accounts may not approve money movement
+    permission: "finance.*:approve"
+    when:
+      account_type: service
+
+  - id: DENY-002
+    name: IAM administration restricted to the IT department
+    permission: "it.iam:admin"
+    when:
+      department_not_in: [IT]
+
+  - id: DENY-003
+    name: Payroll execution restricted to HR
+    permission: "hr.payroll:run"
+    when:
+      department_not_in: [HR]
+
+  - id: DENY-004
+    name: Backup deletion is break-glass only
+    permission: "it.backups:delete"
+    when:
+      group_not_in: [g-breakglass]

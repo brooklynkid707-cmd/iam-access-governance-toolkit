@@ -1,0 +1,88 @@
+# Separation-of-duties rule set.
+#
+# A rule fires when a single identity holds EVERY permission listed under
+# `permissions`.  Keep the list to the minimal toxic combination; the
+# analyzer will report the exact grant paths so the reviewer can decide which
+# side of the conflict to remove.
+#
+# severity: critical | high | medium | low
+
+rules:
+  - id: SOD-001
+    name: Vendor creation + payment approval
+    description: >-
+      A user who can create a vendor record and approve payments can set up a
+      fictitious supplier and pay it. Classic accounts-payable fraud path.
+    severity: critical
+    permissions:
+      - finance.vendors:create
+      - finance.payments:approve
+
+  - id: SOD-002
+    name: Payment creation + payment approval
+    description: >-
+      Initiating and approving the same payment removes the maker/checker
+      control on outgoing funds.
+    severity: critical
+    permissions:
+      - finance.payments:create
+      - finance.payments:approve
+
+  - id: SOD-003
+    name: Payroll run + payroll approval
+    description: >-
+      Running payroll and approving it allows undetected salary manipulation.
+    severity: critical
+    permissions:
+      - hr.payroll:run
+      - hr.payroll:approve
+
+  - id: SOD-004
+    name: Employee record update + payroll run
+    description: >-
+      Editing employee master data (bank details, rates) and running payroll
+      enables ghost-employee fraud.
+    severity: high
+    permissions:
+      - hr.employees:update
+      - hr.payroll:run
+
+  - id: SOD-005
+    name: Production deploy + deploy approval
+    description: >-
+      Self-approving a production deployment bypasses change management and
+      is a common path for malicious or accidental outages.
+    severity: high
+    permissions:
+      - eng.prod:deploy
+      - eng.prod:approve_deploy
+
+  - id: SOD-006
+    name: IAM administration + payment approval
+    description: >-
+      An identity administrator who can also approve payments can grant
+      themselves (or a proxy) every other financial permission.
+    severity: critical
+    permissions:
+      - it.iam:admin
+      - finance.payments:approve
+
+  - id: SOD-007
+    name: Ledger posting + payment approval
+    description: >-
+      Posting journal entries and approving payments lets a user both move
+      money and hide the movement.
+    severity: high
+    permissions:
+      - finance.ledger:post
+      - finance.payments:approve
+
+  - id: SOD-008
+    name: Backup deletion + server administration
+    description: >-
+      A single account that can both administer servers and delete backups
+      can destroy data and its recovery path (ransomware-style blast radius).
+    severity: high
+    permissions:
+      - it.backups:delete
+      - it.servers:admin
